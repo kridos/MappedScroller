@@ -60,21 +60,27 @@ async function render() {
 
   const st = $('status');
   if (!linked) {
+    $('details').hidden = true;
     st.className = 'status off';
     st.textContent = 'Not linked';
     return;
   }
-  const ping = (id) => chrome.tabs.sendMessage(id, { type: 'status' }).catch(() => null);
-  const [info, infoB] = await Promise.all([ping(state.a), ping(state.b)]);
+  const res = await call({ type: 'status' }).catch(() => null);
+  const info = res && res.a;
+  const infoB = res && res.b;
   const dead = [info ? null : 'First', infoB ? null : 'Second'].filter(Boolean);
+  renderDetails([['First', info], ['Second', infoB]]);
   if (dead.length) {
     st.className = 'status paused';
     st.textContent = `${dead.join(' and ')} tab isn't connected. Click Re-link (or reload the tab first).`;
     return;
   }
-  st.className = 'status ' + (state.paused ? 'paused' : 'on');
+  const noScroll = [info.score ? null : 'first', infoB.score ? null : 'second'].filter(Boolean);
+  st.className = 'status ' + (state.paused || noScroll.length ? 'paused' : 'on');
   let text = state.paused ? 'Paused' : 'Synced';
-  if (state.mode === 'headings') {
+  if (noScroll.length) {
+    text += ` · couldn't find the scrolling document in the ${noScroll.join(' and ')} tab yet. Scroll it once`;
+  } else if (state.mode === 'headings') {
     if (info.partnerKnown) {
       text += info.matches
         ? ` · ${info.matches} matching heading${info.matches === 1 ? '' : 's'}`
@@ -84,6 +90,25 @@ async function render() {
     text += ' · by % of page';
   }
   st.textContent = text;
+}
+
+// Small per-tab readout so it's clear what the extension is looking at.
+function renderDetails(rows) {
+  const el = $('details');
+  el.innerHTML = '';
+  for (const [label, info] of rows) {
+    const line = document.createElement('div');
+    if (!info) {
+      line.textContent = `${label}: not connected`;
+    } else {
+      let host = '';
+      try { host = new URL(info.url).hostname; } catch (_) {}
+      const where = info.inFrame ? `embedded viewer${host ? ' (' + host + ')' : ''}` : 'main page';
+      line.textContent = `${label}: ${where} · ${info.anchors} heading${info.anchors === 1 ? '' : 's'} found`;
+    }
+    el.appendChild(line);
+  }
+  el.hidden = false;
 }
 
 async function act(msg) {

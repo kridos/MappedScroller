@@ -46,6 +46,8 @@ h1 { font-size: 15px; margin: 0; }
 .status.paused { background: var(--warn-bg); color: var(--warn-fg); }
 .status.off { background: var(--off-bg); color: var(--muted); }
 
+.details { font-size: 11px; color: var(--muted); margin: -4px 0 10px; padding: 0 2px; }
+.details[hidden] { display: none; }
 .field { display: block; }
 .field span { display: block; font-size: 11px; color: var(--muted); margin-bottom: 2px; text-transform: uppercase; letter-spacing: .03em; }
 select {

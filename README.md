@@ -44,6 +44,15 @@ to the very top or bottom of the window near the ends of the page, so top lines 
 
 If no headings match, or you pick **Same % down the page**, the tabs scroll by percentage instead.
 
+### File viewers and graders
+
+Sites that preview files (LMS file previews, SpeedGrader-style grading pages, document viewers) usually show
+the document inside an embedded frame, often from a different domain. The extension runs in every frame of a
+linked tab and syncs the frame that holds the document: the one with the largest scrollable area, or the one you
+last scrolled. Smaller scrolling panels next to it, such as a grading sidebar, don't take over. When the viewer
+loads a new file in its frame (e.g. switching students), the new frame is picked up automatically. The popup shows,
+for each tab, whether it's syncing the main page or an embedded viewer, and how many headings it found there.
+
 Anchors are recalculated when the page changes (content loads, images resize, window resize), and
 re-sent automatically if a linked tab reloads or navigates.
 
@@ -52,7 +61,8 @@ re-sent automatically if a linked tab reloads or navigates.
 - **PDFs in Chrome's built-in viewer can't be synced.** Browsers don't let extensions read or scroll that viewer.
   Workaround: use the HTML version of the document, or open the PDF in a web-based viewer that renders text (e.g. pdf.js).
 - Browser-internal pages (`chrome://…`, the Web Store) are off-limits to all extensions.
-- Content inside iframes isn't scanned; only the top page is.
+- Viewers that draw the file as **images** (scanned PDFs, some document viewers that render pages to a canvas
+  with no text) have no headings to match. *Same % down the page* still works there.
 
 ## Try it
 

@@ -1,5 +1,7 @@
 // MappedScroller content script.
-// Injected into both linked tabs. Each tab:
+// Injected into every frame of both linked tabs. (File viewers / graders usually show
+// the document inside an embedded frame; background.js works out which frame in each
+// tab holds the document and only talks to that one.) The active frame in each tab:
 //   1. finds "anchors" on its page (headings + numbered question labels),
 //   2. shares them with its partner tab (relayed by background.js),
 //   3. when the user scrolls, maps its scroll position onto the partner's page
@@ -271,18 +273,30 @@
     }
   }
 
+  // How much this frame looks like "the document": visible area of its main
+  // scroller, or 0 if it has nothing to scroll. Used to pick a frame per tab.
+  function frameScore() {
+    if (!scroller || scrollRange(scroller) < 50) return 0;
+    if (isDoc(scroller)) return window.innerWidth * window.innerHeight;
+    const r = scroller.getBoundingClientRect();
+    const w = Math.min(r.right, window.innerWidth) - Math.max(r.left, 0);
+    const h = Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0);
+    return w > 0 && h > 0 ? Math.round(w * h) : 0;
+  }
+
   function sendAnchors(force) {
-    const sig = contentHeight + '|' + anchors.map((a) => a.key + '@' + a.y).join(',');
+    const score = frameScore();
+    const sig = score + '|' + contentHeight + '|' + anchors.map((a) => a.key + '@' + a.y).join(',');
     if (!force && sig === lastSentSignature) return;
     lastSentSignature = sig;
-    send({ type: 'anchors', anchors, contentHeight });
+    send({ type: 'anchors', anchors, contentHeight, score });
   }
 
   function broadcastPosition() {
     if (!config.enabled || !scroller) return;
     const top = getTop(), vh = viewH(), max = maxTop();
     if (config.mode === 'percent' || !partner) {
-      send({ type: 'scrollTo', frac: max > 0 ? top / max : 0 });
+      send({ type: 'scrollTo', frac: max > 0 ? top / max : 0, user: userIsDriving() });
       return;
     }
     // Reference line sits 30% down the viewport, but slides to the very top/bottom
@@ -290,7 +304,7 @@
     let ref = vh * REF_FRACTION;
     if (top < ref) ref = top;
     else if (max - top < vh - ref) ref = vh - (max - top);
-    send({ type: 'scrollTo', y: mapY(top + ref), refFrac: vh > 0 ? ref / vh : 0 });
+    send({ type: 'scrollTo', y: mapY(top + ref), refFrac: vh > 0 ? ref / vh : 0, user: userIsDriving() });
   }
 
   const userIsDriving = () => pointerDown || Date.now() - lastLocalInput < INPUT_WINDOW_MS;
@@ -425,7 +439,7 @@
         applyRemote(msg);
         break;
       case 'status':
-        sendResponse({ anchors: anchors.length, matches: matchCount, partnerKnown: !!partner });
+        sendResponse({ anchors: anchors.length, matches: matchCount, partnerKnown: !!partner, score: frameScore() });
         return;
       case 'resync':
         broadcastPosition();

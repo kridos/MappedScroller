@@ -3,7 +3,7 @@
   "name": "MappedScroller",
   "version": "0.1.0",
   "description": "Scroll two tabs together, keeping matching headings and numbered questions lined up.",
-  "permissions": ["tabs", "scripting", "storage"],
+  "permissions": ["tabs", "scripting", "storage", "webNavigation"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
