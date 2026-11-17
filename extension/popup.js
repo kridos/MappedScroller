@@ -64,11 +64,18 @@ async function render() {
     st.textContent = 'Not linked';
     return;
   }
+  const ping = (id) => chrome.tabs.sendMessage(id, { type: 'status' }).catch(() => null);
+  const [info, infoB] = await Promise.all([ping(state.a), ping(state.b)]);
+  const dead = [info ? null : 'First', infoB ? null : 'Second'].filter(Boolean);
+  if (dead.length) {
+    st.className = 'status paused';
+    st.textContent = `${dead.join(' and ')} tab isn't connected. Click Re-link (or reload the tab first).`;
+    return;
+  }
   st.className = 'status ' + (state.paused ? 'paused' : 'on');
   let text = state.paused ? 'Paused' : 'Synced';
   if (state.mode === 'headings') {
-    const info = await chrome.tabs.sendMessage(state.a, { type: 'status' }).catch(() => null);
-    if (info && info.partnerKnown) {
+    if (info.partnerKnown) {
       text += info.matches
         ? ` · ${info.matches} matching heading${info.matches === 1 ? '' : 's'}`
         : ' · no matching headings found (using % instead)';

@@ -5,8 +5,11 @@
 //   3. when the user scrolls, maps its scroll position onto the partner's page
 //      using the anchors both pages have in common, and tells the partner where to go.
 (() => {
-  if (window.__mappedScrollerLoaded) return;
-  window.__mappedScrollerLoaded = true;
+  // If an earlier copy of this script is on the page (e.g. left behind after the
+  // extension was reloaded/updated, so it can no longer talk to the extension),
+  // tell it to shut down and take over.
+  const REPLACE_EVENT = 'mappedscroller:replace';
+  document.dispatchEvent(new CustomEvent(REPLACE_EVENT));
 
   // Where in the viewport headings are lined up (0 = top, 1 = bottom).
   const REF_FRACTION = 0.3;
@@ -35,21 +38,42 @@
   // ---------------------------------------------------------------- scroller
 
   const docScroller = () => document.scrollingElement || document.documentElement;
-  const isDoc = (el) => el === docScroller() || el === document.documentElement || el === document.body;
+  const isDoc = (el) => el === docScroller();
 
+  const scrollRange = (el) => el.scrollHeight - el.clientHeight;
+
+  function canScroll(el) {
+    if (isDoc(el)) {
+      const oy = getComputedStyle(document.documentElement).overflowY;
+      const by = document.body ? getComputedStyle(document.body).overflowY : '';
+      return oy !== 'hidden' && oy !== 'clip' && by !== 'hidden' && by !== 'clip';
+    }
+    const oy = getComputedStyle(el).overflowY;
+    return oy === 'auto' || oy === 'scroll' || oy === 'overlay';
+  }
+
+  // Is this box big enough to be "the page" (vs. a small scrolling widget)?
+  function isMajor(el) {
+    if (isDoc(el)) return true;
+    const r = el.getBoundingClientRect();
+    const vw = Math.min(r.right, window.innerWidth) - Math.max(r.left, 0);
+    const vh = Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0);
+    return vw > 0 && vh > 0 && vw * vh >= 0.25 * window.innerWidth * window.innerHeight;
+  }
+
+  // Pick the scroll container holding the page's content: of the big scrollable
+  // boxes (including the document itself), the one with the most to scroll.
+  // Handles normal pages, <body>-scrolling pages and app layouts with an inner scroller.
   function findScroller() {
     const se = docScroller();
-    if (se.scrollHeight - se.clientHeight > 50) return se;
-    // Page doesn't scroll as a whole (app-style layout): use the biggest scrollable box.
-    let best = null;
-    let bestArea = 0;
-    for (const el of document.body ? document.body.querySelectorAll('*') : []) {
-      if (el.scrollHeight - el.clientHeight < 50) continue;
-      const oy = getComputedStyle(el).overflowY;
-      if (oy !== 'auto' && oy !== 'scroll' && oy !== 'overlay') continue;
-      const r = el.getBoundingClientRect();
-      const area = r.width * r.height;
-      if (area > bestArea) { best = el; bestArea = area; }
+    let best = canScroll(se) && scrollRange(se) > 0 ? se : null;
+    let bestRange = best ? scrollRange(se) : 0;
+    for (const el of document.body ? [document.body, ...document.body.querySelectorAll('*')] : []) {
+      const range = scrollRange(el);
+      if (range <= Math.max(50, bestRange)) continue;
+      if (!canScroll(el) || !isMajor(el)) continue;
+      best = el;
+      bestRange = range;
     }
     return best || se;
   }
@@ -301,10 +325,19 @@
   const resizeObs = new ResizeObserver(scheduleRescan);
 
   function onScroll(e) {
-    if (!config.enabled || !scroller) return;
-    const t = e.target;
-    const ours = isDoc(scroller) ? t === document || isDoc(t) : t === scroller;
-    if (!ours) return;
+    if (!config.enabled) return;
+    const t = e.target === document ? docScroller() : e.target;
+    if (!(t instanceof Element)) return;
+    if (t !== scroller) {
+      // The user is scrolling a different box than we picked. If it's a big,
+      // page-sized one, it's the real content scroller: switch to it.
+      if (!userIsDriving() || scrollRange(t) < 50 || !isMajor(t)) return;
+      scroller = t;
+      contentHeight = fullH();
+      anchors = collectAnchors();
+      computeMap();
+      sendAnchors(false);
+    }
     const now = Date.now();
     // Scroll caused by us applying the partner's position: don't echo it back.
     if (now - lastRemoteApply < ECHO_WINDOW_MS && !userIsDriving()) return;
@@ -354,6 +387,7 @@
   }
 
   function teardown() {
+    clearTimeout(rescanTimer);
     stopObservers();
     config = { enabled: false, linked: false };
     try { chrome.runtime.onMessage.removeListener(onMessage); } catch (_) {}
@@ -400,4 +434,5 @@
   }
 
   chrome.runtime.onMessage.addListener(onMessage);
+  document.addEventListener(REPLACE_EVENT, teardown, { once: true });
 })();
