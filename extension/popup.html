@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>MappedScroller</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="icons/icon32.png" alt="" width="20" height="20">
+    <h1>MappedScroller</h1>
+  </header>
+
+  <div id="status" class="status off">Not linked</div>
+
+  <label class="field">
+    <span>First tab</span>
+    <select id="tabA"></select>
+  </label>
+  <div class="swap-row"><button id="swap" class="link-btn" title="Swap tabs">⇅ swap</button></div>
+  <label class="field">
+    <span>Second tab</span>
+    <select id="tabB"></select>
+  </label>
+
+  <fieldset>
+    <legend>Line up by</legend>
+    <label class="radio"><input type="radio" name="mode" value="headings" checked>
+      Matching headings <small>(recommended)</small></label>
+    <label class="radio"><input type="radio" name="mode" value="percent">
+      Same % down the page</label>
+    <label class="check"><input type="checkbox" id="numbered" checked>
+      Also match numbered questions <small>(1., Q1, Question 1, Part B)</small></label>
+  </fieldset>
+
+  <div class="buttons">
+    <button id="linkBtn" class="primary">Link &amp; sync</button>
+    <button id="pauseBtn" hidden>Pause</button>
+    <button id="unlinkBtn" hidden>Unlink</button>
+  </div>
+  <button id="arrangeBtn" class="wide" hidden>Show side by side</button>
+
+  <p id="error" class="error" hidden></p>
+  <p class="hint">Shortcut: <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> pauses / resumes.</p>
+
+  <script src="popup.js"></script>
+</body>
+</html>
