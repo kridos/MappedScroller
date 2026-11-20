@@ -1,10 +1,17 @@
 {
   "manifest_version": 3,
   "name": "MappedScroller",
-  "version": "0.1.0",
-  "description": "Scroll two tabs together, keeping matching headings and numbered questions lined up.",
-  "permissions": ["tabs", "scripting", "storage", "webNavigation"],
-  "host_permissions": ["<all_urls>"],
+  "version": "0.0.0.1",
+  "description": "Scroll two tabs together with matching headings and question numbers lined up, like a practice test and its answer key.",
+  "permissions": [
+    "tabs",
+    "scripting",
+    "storage",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "background.js"
   },
@@ -26,7 +33,9 @@
   },
   "commands": {
     "toggle-sync": {
-      "suggested_key": { "default": "Alt+Shift+S" },
+      "suggested_key": {
+        "default": "Alt+Shift+S"
+      },
       "description": "Pause / resume synced scrolling"
     }
   }

@@ -74,6 +74,16 @@ cd demo && python3 -m http.server 8000
 
 Open http://localhost:8000/practice-test.html and http://localhost:8000/answers.html, link them, and scroll.
 
+## Publishing to the Chrome Web Store
+
+```bash
+python3 scripts/package.py
+```
+
+This checks the manifest and writes `dist/mappedscroller-<version>.zip` to upload. Raise `"version"` in
+`extension/manifest.json` before each new upload. The listing text, permission justifications and
+screenshots are in [`store/LISTING.md`](store/LISTING.md), and the privacy policy is in [`PRIVACY.md`](PRIVACY.md).
+
 ## Files
 
 ```
@@ -84,4 +94,6 @@ extension/
   popup.html/js/css  the toolbar popup
   icons/
 demo/             sample pages
+scripts/package.py  builds the Web Store zip
+store/            listing text and images for the Web Store
 ```
